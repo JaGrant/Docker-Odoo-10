@@ -1,2 +1,2 @@
-# Docker---Odoo-10
-A docker container hosting Odoo 10
+# Docker-Odoo-10
+A custom docker container hosting Odoo 10
