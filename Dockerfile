@@ -1,83 +1,66 @@
 FROM debian:jessie
 
-RUN apt-get update && apt-get -y install cron && apt-get -y install vim
-# set up cron jobs
-ADD scripts/export-db /etc/cron.d/db-export-cron
-RUN chmod 0644 /etc/cron.d/db-export-cron
-RUN crontab /etc/cron.d/db-export-cron
-RUN touch /var/log/cron.log
-
-ADD scripts/services.sh /services/
-RUN chmod 0644 /services/services.sh
-RUN chmod a+x /services/services.sh
-
-# add our user and group first to make sure their IDs get assigned consistently, regardless of whatever dependencies get added
-RUN groupadd -r mysql && useradd -r -g mysql mysql
-
-# add gosu for easy step-down from root
-ENV GOSU_VERSION 1.7
-RUN set -x \
-	&& apt-get update && apt-get install -y --no-install-recommends ca-certificates wget && rm -rf /var/lib/apt/lists/* \
-	&& wget -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$(dpkg --print-architecture)" \
-	&& wget -O /usr/local/bin/gosu.asc "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$(dpkg --print-architecture).asc" \
-	&& export GNUPGHOME="$(mktemp -d)" \
-	&& gpg --keyserver ha.pool.sks-keyservers.net --recv-keys B42F6819007F00F88E364FD4036A9C25BF357DD4 \
-	&& gpg --batch --verify /usr/local/bin/gosu.asc /usr/local/bin/gosu \
-	&& rm -r "$GNUPGHOME" /usr/local/bin/gosu.asc \
-	&& chmod +x /usr/local/bin/gosu \
-	&& gosu nobody true \
-	&& apt-get purge -y --auto-remove ca-certificates wget
-RUN mkdir /docker-entrypoint-initdb.d
-
-# Copy SQL Data into container
-ADD data/*.sql /docker-entrypoint-initdb.d/
+# Install Vim
+RUN apt-get update \
+	&& apt-get -y install vim \
+	&& apt-get -y install sudo \
+	&& apt-get -y install bash \
+	&& apt-get -y install wget \
+	&& apt-get -y install git \
+	&& apt-get -y install python2.7 \
+	&& apt-get -y install python-pip \
+	&& apt-get -y install postgresql \
+	&& apt-get -y install nano \
+	&& apt-get -y install python-virtualenv \
+	&& apt-get -y install fontconfig \
+	&& apt-get -y install libfontconfig1 \
+	&& apt-get -y install libfreetype6 \
+	&& apt-get -y install libpng12-0 \
+	&& apt-get -y install libjpeg62-turbo \
+	&& apt-get -y install libx11-6 \
+	&& apt-get -y install libxext6 \
+	&& apt-get -y install libxrender1 \
+	&& apt-get -y install xfonts-base \
+	&& apt-get -y install xfonts-75dpi
 
 
-# FATAL ERROR: please install the following Perl modules before executing /usr/local/mysql/scripts/mysql_install_db:
-# File::Basename
-# File::Copy
-# Sys::Hostname
-# Data::Dumper
-RUN apt-get update && apt-get install -y perl pwgen --no-install-recommends && rm -rf /var/lib/apt/lists/*
+# Install Wkhtmltopdf - A runtime dependency of Odoo used to produce PDF reports
+RUN wget http://nightly.odoo.com/extra/wkhtmltox-0.12.1.2_linux-jessie-amd64.deb
+RUN dpkg -i wkhtmltox-0.12.1.2_linux-jessie-amd64.deb
+RUN apt-get -y install gcc python2.7-dev libxml2-dev \
+	libxslt1-dev libevent-dev libsasl2-dev libldap2-dev libpq-dev \
+	libpng12-dev libjpeg-dev
 
-RUN set -ex; \
-# gpg: key 5072E1F5: public key "MySQL Release Engineering <mysql-build@oss.oracle.com>" imported
-	key='A4A9406876FCBD3C456770C88C718D3B5072E1F5'; \
-	export GNUPGHOME="$(mktemp -d)"; \
-	gpg --keyserver ha.pool.sks-keyservers.net --recv-keys "$key"; \
-	gpg --export "$key" > /etc/apt/trusted.gpg.d/mysql.gpg; \
-	rm -r "$GNUPGHOME"; \
-	apt-key list > /dev/null
+# Configure PostgreSQL
+ADD postgres.sh /
+RUN chmod 0644 /postgres.sh
+RUN chmod a+x /postgres.sh
+RUN /postgres.sh
 
-ENV MYSQL_MAJOR 8.0
-ENV MYSQL_VERSION 8.0.0-dmr-1debian8
 
-RUN echo "deb http://repo.mysql.com/apt/debian/ jessie mysql-${MYSQL_MAJOR}" > /etc/apt/sources.list.d/mysql.list
+#Configure Git
+RUN git config --global user.name "Jason Grant"
+RUN git config --global user.email jaygrant.it@gmail.com
 
-# the "/var/lib/mysql" stuff here is because the mysql-server postinst doesn't have an explicit way to disable the mysql_install_db codepath besides having a database already "configured" (ie, stuff in /var/lib/mysql/mysql)
-# also, we set debconf keys to make APT a little quieter
-RUN { \
-		echo mysql-community-server mysql-community-server/data-dir select ''; \
-		echo mysql-community-server mysql-community-server/root-pass password 'password'; \
-		echo mysql-community-server mysql-community-server/re-root-pass password 'password'; \
-		echo mysql-community-server mysql-community-server/remove-test-db select false; \
-	} | debconf-set-selections \
-	&& apt-get update && apt-get install -y mysql-server="${MYSQL_VERSION}" && rm -rf /var/lib/apt/lists/* \
-	&& rm -rf /var/lib/mysql && mkdir -p /var/lib/mysql /var/run/mysqld \
-	&& chown -R mysql:mysql /var/lib/mysql /var/run/mysqld \
-# ensure that /var/run/mysqld (used for socket and lock files) is writable regardless of the UID our mysqld instance ends up having at runtime
-	&& chmod 777 /var/run/mysqld
+# Clone Odoo code base:
+RUN git clone -b 10.0 --depth=1 --single-branch https://github.com/odoo/odoo.git ~/odoo
 
-# comment out a few problematic configuration values
-# don't reverse lookup hostnames, they are usually another container
-RUN sed -Ei 's/^(bind-address|log)/#&/' /etc/mysql/mysql.conf.d/mysqld.cnf \
-	&& echo '[mysqld]\nskip-host-cache\nskip-name-resolve' > /etc/mysql/conf.d/docker.cnf
 
-VOLUME /var/lib/mysql
+# Create python virtual enviroment
+RUN virtualenv ~/odoo-10.0
+RUN . ~/odoo-10.0/bin/activate
 
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN ln -s usr/local/bin/docker-entrypoint.sh /entrypoint.sh # backwards compat
-ENTRYPOINT ["docker-entrypoint.sh"]
 
-EXPOSE 3306
-CMD ["mysqld"]
+# Install Python Dependencies for Odoo
+RUN pip install -r ~/odoo/requirements.txt
+
+# Create and start Odoo Instance
+#RUN createdb odoo-test
+
+#EXPOSE 8069 5432
+CMD ["python odoo.py -d odoo-test --addons-path=addons --dbfilter=odoo-test$"]
+
+
+
+
+ 
