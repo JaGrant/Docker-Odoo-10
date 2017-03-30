@@ -33,9 +33,14 @@ RUN apt-get -y install gcc python2.7-dev libxml2-dev \
 
 # Configure PostgreSQL
 ADD postgres.sh /
+ADD startServices.sh /
+
 RUN chmod 0644 /postgres.sh
 RUN chmod a+x /postgres.sh
 RUN /postgres.sh
+
+RUN chmod 0644 /startServices.sh
+RUN chmod a+x /startServices.sh
 
 
 #Configure Git
@@ -55,12 +60,10 @@ RUN . ~/odoo-10.0/bin/activate
 RUN pip install -r ~/odoo/requirements.txt
 
 # Create and start Odoo Instance
-#RUN createdb odoo-test
+# RUN createdb odoo-test
 
 #EXPOSE 8069 5432
-CMD ["python odoo.py -d odoo-test --addons-path=addons --dbfilter=odoo-test$"]
-
-
-
+#CMD [ "/usr/bin/python", "/root/odoo/odoo-bin", "-d odoo-test", "--addons-path=/root/odoo/addons" ]
+CMD [ "/startServices.sh" ]
 
  
