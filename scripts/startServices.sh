@@ -7,10 +7,16 @@ exec >/tmp/run.log 2>&1
 
 echo "Startup initiated $(date)"
 
-# Add start up scripts here
-  # Start Postgres
+# Container Services
+
+  # Start and Configure Postgres
   sudo service postgresql start
+  sleep 30
+  sudo -u postgres createuser --createdb $(whoami)
+  createdb odoo-test
   # Start Odoo
+  sleep 10
+  /usr/bin/python /root/odoo/odoo-bin -d odoo-test --addons-path=/root/odoo/addons
 
 echo "Startup Completed $(date)"
 

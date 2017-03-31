@@ -32,12 +32,12 @@ RUN apt-get -y install gcc python2.7-dev libxml2-dev \
 	libpng12-dev libjpeg-dev
 
 # Configure PostgreSQL
-ADD scripts/postgres.sh /
+#ADD scripts/postgres.sh /
 ADD scripts/startServices.sh /
 
-RUN chmod 0644 /postgres.sh
-RUN chmod a+x /postgres.sh
-RUN /postgres.sh
+#RUN chmod 0644 /postgres.sh
+#RUN chmod a+x /postgres.sh
+#RUN /postgres.sh
 
 RUN chmod 0644 /startServices.sh
 RUN chmod a+x /startServices.sh
@@ -47,7 +47,7 @@ RUN chmod a+x /startServices.sh
 RUN git config --global user.name "Jason Grant"
 RUN git config --global user.email jaygrant.it@gmail.com
 
-# Clone Odoo code base:
+# Import Odoo code base:
 RUN git clone -b 10.0 --depth=1 --single-branch https://github.com/odoo/odoo.git ~/odoo
 
 
@@ -59,11 +59,8 @@ RUN . ~/odoo-10.0/bin/activate
 # Install Python Dependencies for Odoo
 RUN pip install -r ~/odoo/requirements.txt
 
-# Create and start Odoo Instance
-# RUN createdb odoo-test
 
 #EXPOSE 8069 5432
-#CMD [ "/usr/bin/python", "/root/odoo/odoo-bin", "-d odoo-test", "--addons-path=/root/odoo/addons" ]
 CMD [ "/startServices.sh" ]
 
  
