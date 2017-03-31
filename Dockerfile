@@ -32,8 +32,8 @@ RUN apt-get -y install gcc python2.7-dev libxml2-dev \
 	libpng12-dev libjpeg-dev
 
 # Configure PostgreSQL
-ADD postgres.sh /
-ADD startServices.sh /
+ADD scripts/postgres.sh /
+ADD scripts/startServices.sh /
 
 RUN chmod 0644 /postgres.sh
 RUN chmod a+x /postgres.sh
