@@ -1,0 +1,33 @@
+Actions to perform on start up:
+
+# start odoo:
+--- service odoo start
+--- Odoo logfile: # tail -f /var/log/odoo/odoo-server.log
+
+
+# start postgres
+--- service postgresql start
+--- PSQL logfile: tail -f /var/log/postgresql/postgresql-9.4-main.log
+
+# Switch to postgres user:
+--- su postgres
+# create db user with superuser:
+createuser odoo --createdb --superuser
+
+
+
+In console run psql:
+
+sudo -u postgres psql postgres
+then in psql console execute sequence of commands:
+
+update pg_database set datallowconn = TRUE where datname = 'template0';
+\c template0
+update pg_database set datistemplate = FALSE where datname = 'template1';
+drop database template1;
+create database template1 with template = template0 encoding = 'UTF8';
+update pg_database set datistemplate = TRUE where datname = 'template1';
+\c template1
+update pg_database set datallowconn = FALSE where datname = 'template0';
+
+ctrl + D to exit psql cli

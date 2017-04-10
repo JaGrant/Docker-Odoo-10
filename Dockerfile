@@ -24,6 +24,10 @@ RUN apt-get update \
 	&& apt-get -y install xfonts-75dpi
 
 
+RUN wget -O - https://nightly.odoo.com/odoo.key | apt-key add -
+RUN echo "deb http://nightly.odoo.com/10.0/nightly/deb/ ./" >> /etc/apt/sources.list.d/odoo.list
+RUN apt-get -y update && apt-get -y install odoo
+
 # Install Wkhtmltopdf - A runtime dependency of Odoo used to produce PDF reports
 RUN wget http://nightly.odoo.com/extra/wkhtmltox-0.12.1.2_linux-jessie-amd64.deb
 RUN dpkg -i wkhtmltox-0.12.1.2_linux-jessie-amd64.deb
@@ -31,36 +35,15 @@ RUN apt-get -y install gcc python2.7-dev libxml2-dev \
 	libxslt1-dev libevent-dev libsasl2-dev libldap2-dev libpq-dev \
 	libpng12-dev libjpeg-dev
 
-# Configure PostgreSQL
-#ADD scripts/postgres.sh /
+
+# Import Services Script
 ADD scripts/startServices.sh /
-
-#RUN chmod 0644 /postgres.sh
-#RUN chmod a+x /postgres.sh
-#RUN /postgres.sh
-
 RUN chmod 0644 /startServices.sh
 RUN chmod a+x /startServices.sh
 
 
-#Configure Git
-RUN git config --global user.name "Jason Grant"
-RUN git config --global user.email jaygrant.it@gmail.com
-
-# Import Odoo code base:
-RUN git clone -b 10.0 --depth=1 --single-branch https://github.com/odoo/odoo.git ~/odoo
-
-
-# Create python virtual enviroment
-RUN virtualenv ~/odoo-10.0
-RUN . ~/odoo-10.0/bin/activate
-
-
-# Install Python Dependencies for Odoo
-RUN pip install -r ~/odoo/requirements.txt
-
-
-#EXPOSE 8069 5432
+EXPOSE 8069 5432
 CMD [ "/startServices.sh" ]
+#CMD [ "bin/bash" ]
 
  
