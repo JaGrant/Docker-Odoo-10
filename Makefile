@@ -76,7 +76,7 @@ run:
 	@ echo ""
 	@ echo ""
 
-run:
+start:
 	@ echo "------------------------------------------------------------"
 	@ echo "               Starting $(ContainerName) V$(ContainerVersion) Docker container"
 	@ echo "------------------------------------------------------------"
