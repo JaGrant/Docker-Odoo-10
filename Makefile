@@ -28,6 +28,10 @@ help: # Makefile help guide
 	@ echo "RUN"
 	@ echo "    Usage: make run"
 	@ echo "    Desc: Starts the docker container"
+	@ echo ""	
+	@ echo "START"
+	@ echo "    Usage: make start"
+	@ echo "    Desc: Start a stopped container"
 	@ echo ""
 	@ echo "BASH"
 	@ echo "    Usage: make bash"
@@ -72,6 +76,17 @@ run:
 	@ echo ""
 	@ echo ""
 
+run:
+	@ echo "------------------------------------------------------------"
+	@ echo "               Starting $(ContainerName) V$(ContainerVersion) Docker container"
+	@ echo "------------------------------------------------------------"
+	@ echo ""
+	@ docker start $(ContainerName)
+	@ echo ""
+	@ echo ""
+	@ echo " Odoo is now up on: http://localhost:8069"
+	@ echo ""
+	@ echo ""
 
 bash:
 	@ echo "------------------------------------------------------------"
